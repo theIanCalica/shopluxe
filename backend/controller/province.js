@@ -6,13 +6,14 @@ const catchAsynchErrors = require("../middleware/catchAsynchErrors");
 const multer = require("multer");
 const upload = multer();
 
+//Route for create
 router.post(
   "/create-province",
   upload.none(),
   catchAsynchErrors(async (req, res, next) => {
     try {
       const { name, regionID } = req.body;
-      const existingProvince = await Region.findOne({ name, regionID });
+      const existingProvince = await Province.findOne({ name, regionID });
       if (existingProvince) {
         return next(new ErrorHandler("Province already exists", 400));
       }
