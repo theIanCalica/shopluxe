@@ -8,7 +8,8 @@ const fs = require("fs");
 const jwt = require("jsonwebtoken");
 const sendMail = require("../utils/sendMail");
 const catchAsynchErrors = require("../middleware/catchAsynchErrors");
-const sendToken = require('../utils/jwtToken');
+const sendToken = require("../utils/jwtToken");
+const { isAuthenticated } = require("../middleware/auth");
 
 router.post("/create-user", upload.single("file"), async (req, res, next) => {
   try {
@@ -24,12 +25,10 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
           res.status(500).json({ message: "Error deleting file" });
         }
       });
-      return next(new ErrorHandler("User already exists", 400));
+      return res.status(500).json({ message: "User already exists" });
     }
-
     const filename = req.file.filename;
     const fileUrl = path.join(filename);
-
 
     const user = {
       fname: fname,
@@ -57,7 +56,6 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       return next(new ErrorHandler(err.message, 500));
     }
 
-    
     const newUser = new User({
       fname: fname,
       lname: lname,
@@ -66,9 +64,6 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
       avatar: fileUrl,
     });
     await newUser.save();
-
-    // console.log("User created:", user);
-    // res.status(201).json({ success: true, user });
   } catch (error) {
     return next(error);
   }
@@ -101,7 +96,7 @@ router.post(
         { email: newUser.email },
         { activated: true }
       );
-      
+
       sendToken(newUser, 201, res);
     } catch (err) {
       return next(new ErrorHandler(err.message, 500));
@@ -109,4 +104,51 @@ router.post(
   })
 );
 
+//Login
+router.post(
+  "/login-user",
+  catchAsynchErrors(async (req, res, next) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res
+          .status(400)
+          .json({ message: "Please provide all the fields" });
+      }
+
+      const user = await User.findOne({ email }).select("+password");
+
+      if (!user) {
+        return res.status(400).json({ message: "User does not exists!" });
+      }
+
+      const isPasswordValid = await user.comparePassword(password);
+
+      if (!isPasswordValid) {
+        return res.status(400).json({ message: "Incorrect Password" });
+      }
+      sendToken(user, 201, res);
+    } catch (err) {}
+  })
+);
+
+//load user
+router.get(
+  "/getuser",
+  isAuthenticated,
+  catchAsynchErrors(async (req, res, next) => {
+    try {
+      const user = await User.findById(req.user.id);
+
+      if (!user) {
+        return next(new ErrorHandler("User does not exist"));
+      }
+
+      res.status(200).json({
+        sucess: true,
+        user,
+      });
+    } catch (error) {}
+  })
+);
 module.exports = router;
