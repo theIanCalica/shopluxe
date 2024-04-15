@@ -62,13 +62,18 @@ const userSchema = new mongoose.Schema({
     //   required: true,
     // },
   },
-  createdAt: {
-    type: Date,
-    default: Date.now(),
+  activated: {
+    type: Boolean,
+    default: false, // Set default value to false
   },
   resetPasswordToken: String,
   resetPasswordTime: Date,
-});
+},
+{
+  timestamps: true,
+}
+
+);
 
 //  Hash password
 userSchema.pre("save", async function (next) {

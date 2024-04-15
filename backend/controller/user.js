@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const sendMail = require("../utils/sendMail");
 const catchAsynchErrors = require("../middleware/catchAsynchErrors");
 const sendToken = require('../utils/jwtToken');
+
 router.post("/create-user", upload.single("file"), async (req, res, next) => {
   try {
     const { fname, lname, email, password } = req.body;
@@ -29,13 +30,6 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
     const filename = req.file.filename;
     const fileUrl = path.join(filename);
 
-    // const newUser = new User({
-    //   fname: fname,
-    //   lname: lname,
-    //   email: email,
-    //   password: password,
-    //   avatar: fileUrl,
-    // });
 
     const user = {
       fname: fname,
@@ -47,7 +41,6 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
     const activationToken = createActivationToken(user);
 
     const activationUrl = `http://localhost:3000/activation/${activationToken}`;
-    console.log(activationUrl);
     try {
       await sendMail({
         email: user.email,
@@ -63,7 +56,16 @@ router.post("/create-user", upload.single("file"), async (req, res, next) => {
     } catch (err) {
       return next(new ErrorHandler(err.message, 500));
     }
-    // await newUser.save();
+
+    
+    const newUser = new User({
+      fname: fname,
+      lname: lname,
+      email: email,
+      password: password,
+      avatar: fileUrl,
+    });
+    await newUser.save();
 
     // console.log("User created:", user);
     // res.status(201).json({ success: true, user });
@@ -79,7 +81,7 @@ const createActivationToken = (user) => {
   });
 };
 
-//Activate user
+// Activate user route
 router.post(
   "/activation",
   catchAsynchErrors(async (req, res, next) => {
@@ -94,18 +96,17 @@ router.post(
         return next(new ErrorHandler("Invalid Token", 400));
       }
 
-      const { fname, lname, email, password, avatar } = newUser;
-      User.create({
-        fname,
-        lname,
-        email,
-        password,
-        avatar,
-      });
+      // Update user status to activated
+      await User.findOneAndUpdate(
+        { email: newUser.email },
+        { activated: true }
+      );
+      
       sendToken(newUser, 201, res);
     } catch (err) {
-      return next(new ErrorHandler(err.message,500));
+      return next(new ErrorHandler(err.message, 500));
     }
   })
 );
+
 module.exports = router;

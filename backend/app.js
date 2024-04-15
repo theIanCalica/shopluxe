@@ -21,8 +21,10 @@ if(process.env.NODE_ENV != "PRODUCTION"){
 
 //import Routes
 const user = require('./controller/user');
+const region = require('./controller/region');
 
-app.use("/api/v2/user",user)
+app.use("/api/v2/user",user);
+app.use("/api/v2/region",region);
 //Its for error handling
 app.use(ErrorHandler);
 module.exports = app;

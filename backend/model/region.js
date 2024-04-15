@@ -14,6 +14,4 @@ const regionSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
-regionSchema.index({ name: 1 });
 module.exports = mongoose.model("Region", regionSchema);
